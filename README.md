@@ -13,7 +13,20 @@ Welcome to the Facebook Post Scraper project! Our tool allows you to scrape post
 Using our scraping tool is extremely simple. After setting up your environment correctly, you can start scraping right away!
 
 ```python
-
+user, password = "your_user_email", "your_password"
+opts = ScraperOptions(
+    credentials=[LoginCredentials(
+        username=user,
+        password=password
+    )],
+    max_comments_per_post=10,
+    sleep_time_min=2,
+    sleep_time_max=5,
+    stop_conditions=[StopAfterNPosts(5)],
+)
+scraper = Scraper(opts)
+post = scraper.get_posts("NintendoLatAm")
+print(list(post))
 ```
  
 🔒 License
