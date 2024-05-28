@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from random import randint
 from typing import Iterable, Optional, List, Tuple
 
-from facebook_simple_scraper.details.repository import PostDetailRepository
+from facebook_simple_scraper.details.repository import PostDetailRepository, PostDetails
 from facebook_simple_scraper.entities import StopCondition, Post, PostList, Reaction, Comment
 from facebook_simple_scraper.posts.summary_extractor import PostSummaryHTMLParser
 from facebook_simple_scraper.requester import requester
@@ -49,9 +49,13 @@ class PostSummaryListRepository:
             self._cursor = r.cursor
             for post in r.posts:
                 if self._max_comments > 0 and self._comments_repository is not None:
-                    post.comments, reactions = self.get_post_details(post.id)
-                    if reactions not in [None, []]:
-                        post.reactions = reactions
+                    details = self.get_post_details(post.id)
+                    if details.reactions not in [None, []]:
+                        post.reactions = details.reactions
+                    post.comments = details.comments
+                    post.share_count = details.share_count
+                    post.view_count = details.view_count
+
                 post_list.append(post)
                 yield post
             if not self._cursor:
@@ -61,7 +65,7 @@ class PostSummaryListRepository:
                     return
             self._sleep()
 
-    def get_post_details(self, post_id: str) -> Tuple[List[Comment], List[Reaction]]:
+    def get_post_details(self, post_id: str) -> Optional[PostDetails]:
         return self._comments_repository.get_details(post_id, self._max_comments)
 
     def _sleep(self):

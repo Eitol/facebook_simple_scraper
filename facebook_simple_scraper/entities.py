@@ -94,6 +94,8 @@ class Post(BaseModel):
     image_url: str
     video_url: str
     like_count: int
+    share_count: Optional[int] = None
+    view_count: Optional[int] = None
     comment_count: int
     comments: List[Comment] = []
     reactions: List[Reaction] = []

@@ -2,23 +2,21 @@ import abc
 import base64
 import json
 import time
-from typing import List, Tuple
+from typing import List, Optional
 
 import requests
 
-from facebook_simple_scraper.details.extractor import GQLPostDetailExtractor
+from facebook_simple_scraper.details.extractor import GQLPostDetailExtractor, PostDetails
 from facebook_simple_scraper.entities import Comment, Reaction
 from facebook_simple_scraper.requester.requester import Requester
 
 
-class PostDetails:
-    comments: List[Comment]
-    reactions: List[Reaction]
+
 
 
 class PostDetailRepository(abc.ABC):
     @abc.abstractmethod
-    def get_details(self, post_id: str, max_comments: int) -> Tuple[List[Comment], List[Reaction]]:
+    def get_details(self, post_id: str, max_comments: int) -> Optional[PostDetails]:
         raise NotImplementedError()
 
 
@@ -30,7 +28,7 @@ class GraphqlCommentsRepository(PostDetailRepository):
         self._extractor = GQLPostDetailExtractor()
         self._await_time = await_time
 
-    def get_details(self, post_id: str, max_comments: int) -> Tuple[List[Comment], List[Reaction]]:
+    def get_details(self, post_id: str, max_comments: int) -> Optional[PostDetails]:
         url = "https://web.facebook.com/api/graphql/"
         variables = self.requester.load_session_variables()
 
@@ -44,16 +42,16 @@ class GraphqlCommentsRepository(PostDetailRepository):
             payload_dict = self._build_payload(post_id, variables)
             headers = self._build_headers()
             response = requests.request("POST", url, headers=headers, data=payload_dict)
-            comments, reactions, cursor = self._extractor.extract(response.text)
-            all_comments.extend(comments)
-            if cursor is None or len(all_comments) >= max_comments:
+            detail = self._extractor.extract(response.text)
+            all_comments.extend(detail.comments)
+            if detail.next_cursor is None or len(all_comments) >= max_comments:
                 break
-            self._cursor = cursor
+            self._cursor = detail.next_cursor
             if self._cursor is None or self._cursor == "":
                 break
             time.sleep(self._await_time)
         self._cursor = None
-        return all_comments, reactions
+        return detail
 
     def _build_payload(self, post_id, vars_dict: dict):
         target = vars_dict['target']

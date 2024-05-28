@@ -24,14 +24,14 @@ class TestReactionsExtractor(unittest.TestCase):
     def test_extract_reactions(self):
         self.gql_extractor = GQLPostDetailExtractor()
         json_content = read_test_file(PAGE_1_W_REACTIONS)
-        comments, reactions, _ = self.gql_extractor.extract(json_content)
-        self.assertEqual(len(reactions), 6)
-        self.assertEqual(reactions[0].type, ReactionType.LIKE)
-        self.assertEqual(reactions[0].count, 89)
-        self.assertEqual(reactions[1].type, ReactionType.LOVE)
-        self.assertEqual(reactions[1].count, 40)
-        self.assertEqual(reactions[2].type, ReactionType.WOW)
-        self.assertEqual(reactions[2].count, 9)
+        detail = self.gql_extractor.extract(json_content)
+        self.assertEqual(len(detail.reactions), 6)
+        self.assertEqual(detail.reactions[0].type, ReactionType.LIKE)
+        self.assertEqual(detail.reactions[0].count, 89)
+        self.assertEqual(detail.reactions[1].type, ReactionType.LOVE)
+        self.assertEqual(detail.reactions[1].count, 40)
+        self.assertEqual(detail.reactions[2].type, ReactionType.WOW)
+        self.assertEqual(detail.reactions[2].count, 9)
 
 
 class TestCommentsExtractor(unittest.TestCase):
@@ -47,11 +47,11 @@ class TestCommentsExtractor(unittest.TestCase):
         self._extract_page(self.json_content_1, self.exp_cursor_1, self.exp_comments_1)
 
     def _extract_page(self, text: str, expected_cursor: str, expected_comments: List[Comment]) -> None:
-        comments, _, cursor = self.gql_extractor.extract(text)
+        detail = self.gql_extractor.extract(text)
         # items_json = json.dumps(comments, default=pydantic_encoder, indent=4)
-        self.assertEqual(cursor, expected_cursor)
-        self.assertEqual(len(comments), len(expected_comments))
-        self._compare_comments(comments, expected_comments)
+        self.assertEqual(detail.next_cursor, expected_cursor)
+        self.assertEqual(len(detail.comments), len(expected_comments))
+        self._compare_comments(detail.comments, expected_comments)
 
     def _compare_comments(self, comments: List[Comment], expected_comments: List[Comment]) -> None:
         if len(comments) != len(expected_comments):

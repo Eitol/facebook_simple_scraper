@@ -1,16 +1,27 @@
 import datetime
 import json
-from typing import List, Optional, Tuple
+from dataclasses import dataclass
+from typing import List, Optional
 
 from facebook_simple_scraper.entities import Comment, Reaction, ReactionType, User
 
 
+@dataclass
+class PostDetails:
+    comments: List[Comment]
+    total_comments: int
+    reactions: List[Reaction]
+    view_count: int
+    share_count: int
+    next_cursor: str
+
+
 class GQLPostDetailExtractor:
 
-    def extract(self, content: str) -> Tuple[List[Comment], List[Reaction], str]:
+    def extract(self, content: str) -> Optional[PostDetails]:
         j = self._read_first_json(content)
         if j is None:
-            return [], [], ""
+            return None
 
         top_reactions: List[Reaction] = []
 
@@ -23,8 +34,7 @@ class GQLPostDetailExtractor:
             pass
         if len(feedback_field) > 0:
             try:
-                raw_top_reactions = feedback_field['comet_ufi_summary_and_actions_renderer'] \
-                    ['feedback']['top_reactions']['edges']
+                raw_top_reactions = feedback_field['comet_ufi_summary_and_actions_renderer']['feedback']['top_reactions']['edges']
                 for r in raw_top_reactions:
                     reaction = Reaction(
                         type=self._classify_reaction_type(r['node']['id']),
@@ -46,14 +56,30 @@ class GQLPostDetailExtractor:
             cursor = raw_comments['page_info']['end_cursor']
         except:
             pass
-
+        share_count = 0
+        total_comments = 0
+        view_count = 0
         if with_feedback and len(extracted_comment) == 0:
-            raw_comments = feedback_field['comment_list_renderer']['feedback']['comment_rendering_instance_for_feed_location']['comments']
+            raw_comments = \
+                feedback_field['comment_list_renderer']['feedback']['comment_rendering_instance_for_feed_location'][
+                    'comments']
             for node in raw_comments['edges']:
                 extracted_comment.append(self._parse_raw_comment(node))
             cursor = raw_comments['page_info']['end_cursor']
+            fb = feedback_field["comet_ufi_summary_and_actions_renderer"]["feedback"]
+            share_count = fb["share_count"]['count']
+            total_comments = fb["comment_rendering_instance"]["comments"]["total_count"]
+            if fb["video_view_count"] is not None:
+                view_count = fb["video_view_count"]
 
-        return extracted_comment, top_reactions, cursor
+        return PostDetails(
+            comments=extracted_comment,
+            total_comments=total_comments,
+            reactions=top_reactions,
+            share_count=share_count,
+            next_cursor=cursor,
+            view_count=view_count
+        )
 
     def _parse_raw_comment(self, node):
         author = node['node']['author']
@@ -157,5 +183,5 @@ if __name__ == '__main__':
     file_path = '//facebook_simple_scraper/tests/files/get_comments_gql_page_1.jsonlines'
     with open(file_path, 'r') as file:
         text = file.read()
-        comments, reactions, next_cursor = parser.extract(text.__str__())
-        print(comments)
+        detail = parser.extract(text.__str__())
+        print(detail.comments)
