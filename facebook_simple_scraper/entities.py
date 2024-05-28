@@ -96,6 +96,7 @@ class Post(BaseModel):
     like_count: int
     comment_count: int
     comments: List[Comment] = []
+    reactions: List[Reaction] = []
 
 
 class PostList(BaseModel):

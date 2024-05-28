@@ -1,6 +1,6 @@
 from typing import Tuple, Optional
 
-from facebook_simple_scraper.comments.repository import GraphqlCommentsRepository
+from facebook_simple_scraper.details.repository import GraphqlCommentsRepository
 from facebook_simple_scraper.default_values import DEFAULT_SESSION_DIR
 from facebook_simple_scraper.entities import ScraperOptions, SessionStorage
 from facebook_simple_scraper.login.login import MobileBasicLoginRepository

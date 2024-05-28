@@ -1,10 +1,10 @@
 import time
 from dataclasses import dataclass
 from random import randint
-from typing import Iterable, Optional, List
+from typing import Iterable, Optional, List, Tuple
 
-from facebook_simple_scraper.comments.repository import CommentsRepository
-from facebook_simple_scraper.entities import StopCondition, Post, PostList
+from facebook_simple_scraper.details.repository import PostDetailRepository
+from facebook_simple_scraper.entities import StopCondition, Post, PostList, Reaction, Comment
 from facebook_simple_scraper.posts.summary_extractor import PostSummaryHTMLParser
 from facebook_simple_scraper.requester import requester
 
@@ -16,7 +16,7 @@ class GetPostOptions:
     sleep_time_min: int = 5
     sleep_time_max: int = 10
     max_comments: int = 10
-    comments_repository: Optional[CommentsRepository] = None
+    comments_repository: Optional[PostDetailRepository] = None
     stop_conditions: Optional[List[StopCondition]] = None
 
 
@@ -49,7 +49,9 @@ class PostSummaryListRepository:
             self._cursor = r.cursor
             for post in r.posts:
                 if self._max_comments > 0 and self._comments_repository is not None:
-                    post.comments = self._comments_repository.get_comments(post.id, self._max_comments)
+                    post.comments, reactions = self.get_post_details(post.id)
+                    if reactions not in [None, []]:
+                        post.reactions = reactions
                 post_list.append(post)
                 yield post
             if not self._cursor:
@@ -58,6 +60,9 @@ class PostSummaryListRepository:
                 if cond.should_stop(post_list):
                     return
             self._sleep()
+
+    def get_post_details(self, post_id: str) -> Tuple[List[Comment], List[Reaction]]:
+        return self._comments_repository.get_details(post_id, self._max_comments)
 
     def _sleep(self):
         time.sleep(randint(self._sleep_time_min, self._sleep_time_max))

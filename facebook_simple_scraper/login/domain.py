@@ -8,7 +8,7 @@ from facebook_simple_scraper.requester.requester import Requester
 
 @dataclass
 class LoginParams:
-    jazoest: str
+    jazoest: Optional[str] = None
     lsd: Optional[str] = None
     li: Optional[str] = None
     fb_dtsg: Optional[str] = None

@@ -1,6 +1,6 @@
 import unittest
 
-from facebook_simple_scraper.comments.repository import GraphqlCommentsRepository
+from facebook_simple_scraper.details.repository import GraphqlCommentsRepository
 from facebook_simple_scraper.posts.summary_extractor import PostSummaryListExtractor
 from facebook_simple_scraper.posts.summary_repository import GetPostOptions, PostSummaryListRepository
 from facebook_simple_scraper.stop_conditions import StopAfterNPosts

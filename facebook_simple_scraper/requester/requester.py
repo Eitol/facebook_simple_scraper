@@ -18,7 +18,8 @@ class HttpResponse:
 
 class Requester(abc.ABC):
     @abc.abstractmethod
-    def request(self, method: str, url: str, data: Optional[dict] = None, headers: Optional[dict] = None) -> requests.Response:
+    def request(self, method: str, url: str, data: Optional[dict] = None,
+                headers: Optional[dict] = None) -> requests.Response:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -81,6 +82,10 @@ class FacebookSessionBasedRequester(Requester):
         else:
             headers = self.headers
         self.latest_request = requests.Request(method, url, headers=headers, data=data)
+        # cookies_to_keep = ['datr', 'sb', 'c_user']
+        # cookies = {k: v for k, v in self.session.cookies.items() if k in cookies_to_keep}
+        # self.session.cookies.clear()
+        # self.session.cookies.update(cookies)
         return self.session.request(method, url, data=data, headers=headers)
 
     def get_session(self) -> requests.Session:

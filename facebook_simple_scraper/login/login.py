@@ -88,6 +88,8 @@ class MobileBasicLoginRepository(LoginRepository):
             user_info = self._extract_user_info(text)
         except LoginFailedException:
             raise LoginFailedException(f"user: '{username}' password: '{password}'")
+        except Exception:
+            raise LoginFailedException("Error while extracting user info")
 
         session_vars = user_info.__dict__
         self._merge_dicts(params_1, session_vars)

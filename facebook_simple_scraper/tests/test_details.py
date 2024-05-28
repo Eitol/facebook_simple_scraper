@@ -2,11 +2,12 @@ import json
 import unittest
 from typing import List
 
-from facebook_simple_scraper.comments.extractor import GQLCommentExtractor
-from facebook_simple_scraper.entities import Comment
+from facebook_simple_scraper.details.extractor import GQLPostDetailExtractor
+from facebook_simple_scraper.entities import Comment, ReactionType
 from facebook_simple_scraper.tests.utils import read_test_file
 
 PAGE_1 = '../tests/files/get_comments_gql_page_1.jsonlines'
+PAGE_1_W_REACTIONS = '../tests/files/get_comments_and_reactions.jsonlines'
 EXPECTED_PAGE_1 = '../tests/files/get_comments_gql_page_1_expected.json'
 EXPECTED_CURSOR_1 = 'AQHRjbwVYWY_CphyGACRGLHX6TF7WCSuAQHqScDVYMRZQUXHGB1Vp2go5DXevusrbp6VBsXt3qFsjxwd7a_nW1tg1g'
 
@@ -19,10 +20,25 @@ def _load_expected_comments(file_path: str) -> List[Comment]:
     return expected
 
 
+class TestReactionsExtractor(unittest.TestCase):
+    def test_extract_reactions(self):
+        self.gql_extractor = GQLPostDetailExtractor()
+        json_content = read_test_file(PAGE_1_W_REACTIONS)
+        comments, reactions, _ = self.gql_extractor.extract(json_content)
+        self.assertEqual(len(reactions), 6)
+        self.assertEqual(reactions[0].type, ReactionType.LIKE)
+        self.assertEqual(reactions[0].count, 89)
+        self.assertEqual(reactions[1].type, ReactionType.LOVE)
+        self.assertEqual(reactions[1].count, 40)
+        self.assertEqual(reactions[2].type, ReactionType.WOW)
+        self.assertEqual(reactions[2].count, 9)
+
+
 class TestCommentsExtractor(unittest.TestCase):
 
     def setUp(self):
-        self.gql_extractor = GQLCommentExtractor()
+        self.gql_extractor = GQLPostDetailExtractor()
+        self.json_content_1 = read_test_file(PAGE_1)
         self.json_content_1 = read_test_file(PAGE_1)
         self.exp_comments_1 = _load_expected_comments(EXPECTED_PAGE_1)
         self.exp_cursor_1 = EXPECTED_CURSOR_1
@@ -31,7 +47,7 @@ class TestCommentsExtractor(unittest.TestCase):
         self._extract_page(self.json_content_1, self.exp_cursor_1, self.exp_comments_1)
 
     def _extract_page(self, text: str, expected_cursor: str, expected_comments: List[Comment]) -> None:
-        comments, cursor = self.gql_extractor.extract(text)
+        comments, _, cursor = self.gql_extractor.extract(text)
         # items_json = json.dumps(comments, default=pydantic_encoder, indent=4)
         self.assertEqual(cursor, expected_cursor)
         self.assertEqual(len(comments), len(expected_comments))
