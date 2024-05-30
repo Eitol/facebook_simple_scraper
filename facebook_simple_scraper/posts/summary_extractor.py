@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Tuple
 
 import dateparser
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from dateutil.parser import parse
 
 from facebook_simple_scraper.entities import Post, PostList
@@ -38,9 +38,11 @@ class PostSummaryListExtractor(PostSummaryHTMLParser):
         text, text_tag = self._extract_post_text(feed)
         like_count = self._extract_like_count(feed)
         image_tag = feed.find('a', class_='cf cg ch')
+        image_url = ''
         if image_tag is None:
             image_tag = feed.find('img', src=re.compile(r'https://.*\.fna\.fbcdn\.net/v/'))
-            image_url = image_tag.attrs['src']
+            if image_tag is not None:
+                image_url = image_tag.attrs['src']
         else:
             image_url = image_tag.attrs['href']
         story_id = self._extract_story_id(feed)
@@ -70,7 +72,7 @@ class PostSummaryListExtractor(PostSummaryHTMLParser):
         return feeds
 
     @staticmethod
-    def _extract_post_text(feed: BeautifulSoup) -> Tuple[str, BeautifulSoup]:
+    def _extract_post_text(feed: BeautifulSoup) -> Tuple[str, Tag]:
         text_tag = feed.find('div', class_='_5rgn')
         text = ''
         if text_tag is not None:
@@ -86,13 +88,16 @@ class PostSummaryListExtractor(PostSummaryHTMLParser):
         return text, text_tag
 
     @staticmethod
-    def _extract_like_count(feed) -> int:
+    def _extract_like_count(feed: Tag) -> int:
         likes_tag = feed.find('a', class_='_2e4w nowrap')
         if likes_tag is None:
             likes_tag = feed.find('a', class_='cn co')
             if likes_tag is None:
                 return 0
-        return int(likes_tag.get_text(strip=True).replace(",", '').split(' ')[-1])
+        try:
+            return int(likes_tag.get_text(strip=True).replace(",", '').split(' ')[-1])
+        except:
+            return 0
 
     @classmethod
     def _extract_post_date(cls, feed: BeautifulSoup) -> datetime:
@@ -165,4 +170,11 @@ class PostSummaryListExtractor(PostSummaryHTMLParser):
     def _extract_story_id_by_like_tag(html_content: str) -> str:
         soup = BeautifulSoup(html_content, 'html.parser')
         span = soup.find('span', id=lambda x: x and x.startswith('like_'))
-        return span['id'].split('_')[1]
+        if span is None:
+            return ''
+        if 'id' not in span.attrs:
+            return ''
+        s = span['id'].split('_')
+        if len(s) < 2:
+            return ''
+        return s[1]

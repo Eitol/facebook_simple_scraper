@@ -34,13 +34,13 @@ class TestLogin(unittest.TestCase):
     def test_login_success(self):
         self.requester.clear()
         self.requester.add_expected_response(
-            resp_text=read_test_file(LOGIN_PARAM_TEST_FILE)
+            r_text=read_test_file(LOGIN_PARAM_TEST_FILE)
         )
         self.requester.add_expected_response(
-            resp_text=read_test_file(SUCCESS_LOGIN_PAGE_TEST_FILE)
+            r_text=read_test_file(SUCCESS_LOGIN_PAGE_TEST_FILE)
         )
         self.requester.add_expected_response(
-            resp_text=read_test_file(LOGIN_SUCCESS_COMPLETE)
+            r_text=read_test_file(LOGIN_SUCCESS_COMPLETE)
         )
         res = self.login_repo.login('username', 'password')
         self.assertIsInstance(res, LoginResponse)
@@ -48,10 +48,10 @@ class TestLogin(unittest.TestCase):
     def test_login_failed(self):
         self.requester.clear()
         self.requester.add_expected_response(
-            resp_text=read_test_file(LOGIN_PARAM_TEST_FILE)
+            r_text=read_test_file(LOGIN_PARAM_TEST_FILE)
         )
         self.requester.add_expected_response(
-            resp_text=read_test_file(FAILED_LOGIN_PAGE_TEST_FILE)
+            r_text=read_test_file(FAILED_LOGIN_PAGE_TEST_FILE)
         )
         with self.assertRaises(LoginFailedException):
             self.login_repo.login('username', 'password')

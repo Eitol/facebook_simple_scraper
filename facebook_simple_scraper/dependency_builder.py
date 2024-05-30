@@ -1,14 +1,15 @@
 from typing import Tuple, Optional
 
-from facebook_simple_scraper.details.repository import GraphqlCommentsRepository
 from facebook_simple_scraper.default_values import DEFAULT_SESSION_DIR
-from facebook_simple_scraper.entities import ScraperOptions, SessionStorage
+from facebook_simple_scraper.details.repository import GraphqlCommentsRepository
+from facebook_simple_scraper.entities import ScraperOptions
 from facebook_simple_scraper.login.login import MobileBasicLoginRepository
 from facebook_simple_scraper.login.params import MbasicLoginParamsRepository
 from facebook_simple_scraper.login.session_storage import LocalFileSessionStorage
 from facebook_simple_scraper.posts.summary_extractor import PostSummaryListExtractor
 from facebook_simple_scraper.posts.summary_repository import PostSummaryListRepository, GetPostOptions
 from facebook_simple_scraper.requester import requester
+from facebook_simple_scraper.requester.requester import Requester
 
 
 class AbstractScraperDependencyBuilder:
@@ -31,24 +32,25 @@ class DefaultScraperDependencyBuilder:
     """
 
     @staticmethod
-    def build_deps(opts: ScraperOptions) -> Tuple[MobileBasicLoginRepository, PostSummaryListRepository]:
+    def build_deps(opts: ScraperOptions, req: Optional[Requester] = None) -> Tuple[
+        MobileBasicLoginRepository, PostSummaryListRepository]:
         """Build the default dependencies for the scraper.
 
         Args:
             opts (ScraperOptions): The options/configuration for the scraper.
+            req (Optional[Requester], optional): The requester to use for the scraper. Defaults to None.
 
         Returns:
             Tuple[MobileBasicLoginRepository, PostSummaryListRepository]: A tuple
             containing the login repository and post summary repository.
         """
-
-        # Create a requester for Facebook sessions
-        req = requester.FacebookSessionBasedRequester()
+        if req is None:
+            # Create a requester for Facebook sessions
+            req = requester.FacebookSessionBasedRequester()
 
         # Create a repository for login parameters
         params_repo = MbasicLoginParamsRepository(req)
 
-        session_storage: Optional[SessionStorage] = None
         # Determine session storage mechanism
         if opts.session_storage is None:
             session_storage = LocalFileSessionStorage(DEFAULT_SESSION_DIR)

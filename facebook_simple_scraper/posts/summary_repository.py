@@ -1,10 +1,10 @@
 import time
 from dataclasses import dataclass
 from random import randint
-from typing import Iterable, Optional, List, Tuple
+from typing import Iterable, Optional, List
 
 from facebook_simple_scraper.details.repository import PostDetailRepository, PostDetails
-from facebook_simple_scraper.entities import StopCondition, Post, PostList, Reaction, Comment
+from facebook_simple_scraper.entities import StopCondition, Post, PostList
 from facebook_simple_scraper.posts.summary_extractor import PostSummaryHTMLParser
 from facebook_simple_scraper.requester import requester
 
@@ -67,6 +67,9 @@ class PostSummaryListRepository:
 
     def get_post_details(self, post_id: str) -> Optional[PostDetails]:
         return self._comments_repository.get_details(post_id, self._max_comments)
+
+    def get_cursor(self) -> Optional[str]:
+        return self._cursor
 
     def _sleep(self):
         time.sleep(randint(self._sleep_time_min, self._sleep_time_max))

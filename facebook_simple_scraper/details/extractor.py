@@ -34,7 +34,8 @@ class GQLPostDetailExtractor:
             pass
         if len(feedback_field) > 0:
             try:
-                raw_top_reactions = feedback_field['comet_ufi_summary_and_actions_renderer']['feedback']['top_reactions']['edges']
+                raw_top_reactions = \
+                    feedback_field['comet_ufi_summary_and_actions_renderer']['feedback']['top_reactions']['edges']
                 for r in raw_top_reactions:
                     reaction = Reaction(
                         type=self._classify_reaction_type(r['node']['id']),
@@ -172,7 +173,7 @@ class GQLPostDetailExtractor:
                 primer_json = json.loads(first_json_str, strict=False)
 
                 return primer_json
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 return None
         else:
             return None

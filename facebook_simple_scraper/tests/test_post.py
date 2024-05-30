@@ -82,10 +82,10 @@ class TestPostSummary(unittest.TestCase):
     def test_extract_post_id(self):
         req = MockRequester()
         req.add_expected_response(
-            resp_text=self.first_page_html
+            r_text=self.first_page_html
         )
         req.add_expected_response(
-            resp_text=self.second_page_html
+            r_text=self.second_page_html
         )
         opts = GetPostOptions(
             requester=req,

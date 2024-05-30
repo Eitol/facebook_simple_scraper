@@ -16,7 +16,7 @@ class TestPageLoginParamsRepository(unittest.TestCase):
     def test_get_login_params(self):
         req = MockRequester()
         req.add_expected_response(
-            resp_text=read_test_file(LOGIN_PARAM_TEST_FILE)
+            r_text=read_test_file(LOGIN_PARAM_TEST_FILE)
         )
         repository = MbasicLoginParamsRepository(req)
         result = repository.get_login_params()

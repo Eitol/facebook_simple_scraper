@@ -1,6 +1,7 @@
 import unittest
 
 from facebook_simple_scraper.entities import ScraperOptions, LoginCredentials
+from facebook_simple_scraper.login.session_storage import LocalFileSessionStorage
 from facebook_simple_scraper.scraper import Scraper
 from facebook_simple_scraper.stop_conditions import StopAfterNPosts
 from facebook_simple_scraper.tests.utils import get_real_test_credentials
@@ -18,8 +19,9 @@ class TestPostExtractor(unittest.TestCase):
             sleep_time_min=2,
             sleep_time_max=5,
             stop_conditions=[StopAfterNPosts(5)],
+            session_storage=LocalFileSessionStorage("real"),
         )
         scraper = Scraper(opts)
         post = scraper.get_posts("NintendoLatAm")
-        print(list(post))
-
+        post_list = list(post)
+        pass

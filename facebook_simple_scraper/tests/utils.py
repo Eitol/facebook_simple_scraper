@@ -48,16 +48,17 @@ class MockRequester(Requester):
         self.responses = []
         self.last_request_history = []
 
-    def add_expected_response(self, resp_text: Optional[str] = None, status_code: int = 200, resp_headers: Optional[dict] = None):
-        if resp_text is None:
-            resp_text = ""
+    def add_expected_response(self, r_text: Optional[str] = None, status: int = 200, r_headers: Optional[dict] = None):
+        if r_text is None:
+            r_text = ""
         response = requests.Response()
-        response.headers = resp_headers if resp_headers is not None else {}
-        response.raw = BytesIO(resp_text.encode())
-        response.status_code = status_code
+        response.headers = r_headers if r_headers is not None else {}
+        response.raw = BytesIO(r_text.encode())
+        response.status_code = status
         self.responses.append(response)
 
-    def request(self, method: str, url: str, data: Optional[dict] = None, headers: Optional[dict] = None) -> requests.Response:
+    def request(self, method: str, url: str,
+                data: Optional[dict] = None, headers: Optional[dict] = None) -> requests.Response:
         self.last_request_history.append(requests.Request(method, url, headers, data))
         resp = self.responses[0]
         self.responses = self.responses[1:]

@@ -20,15 +20,15 @@ class TestPostSummaryListRepository(unittest.TestCase):
         req = MockRequester()
         if 1 in pages:
             req.add_expected_response(
-                resp_text=read_test_file(POST_TEST_FIRST_FILE_HTML)
+                r_text=read_test_file(POST_TEST_FIRST_FILE_HTML)
             )
         if 2 in pages:
             req.add_expected_response(
-                resp_text=read_test_file(POST_TEST_SECOND_FILE_HTML)
+                r_text=read_test_file(POST_TEST_SECOND_FILE_HTML)
             )
         if 3 in pages:
             req.add_expected_response(
-                resp_text=read_test_file(POST_TEST_LAST_FILE_HTML)
+                r_text=read_test_file(POST_TEST_LAST_FILE_HTML)
             )
         opts = GetPostOptions(
             requester=req,

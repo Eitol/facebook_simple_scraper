@@ -2,8 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='facebook_simple_scraper',
-    version='0.1.2',
-    packages=find_packages(),
+    version='0.1.9',
+    packages=find_packages(include=['facebook_simple_scraper', 'facebook_simple_scraper.*']),
+    include_package_data=True,
     install_requires=[
         'pydantic~=2.7.1',
         'requests~=2.31.0',
@@ -23,4 +24,5 @@ setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.12',
+    license="MIT",
 )

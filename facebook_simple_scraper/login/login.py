@@ -154,7 +154,7 @@ class MobileBasicLoginRepository(LoginRepository):
             raise LoginFailedException("Login failed: checkpoint form without submit button")
         values = {i.get('name'): i.get('value') for i in valid_inputs}
         values[submit.get("name")] = submit.get('value')
-        lr =self._requester.get_latest_request()
+        lr = self._requester.get_latest_request()
         if lr is None:
             raise LoginFailedException("No latest request found")
         parsed_url = urlparse(lr.url)

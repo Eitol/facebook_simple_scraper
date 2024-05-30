@@ -2,7 +2,9 @@ from typing import Optional, Iterable
 
 from facebook_simple_scraper.credentials_ring import CredentialsRingBuffer
 from facebook_simple_scraper.dependency_builder import AbstractScraperDependencyBuilder, DefaultScraperDependencyBuilder
+from facebook_simple_scraper.details.extractor import PostDetails
 from facebook_simple_scraper.entities import ScraperOptions, Post
+from facebook_simple_scraper.posts.summary_repository import PostSummaryListRepository
 
 
 class Scraper:
@@ -37,6 +39,7 @@ class Scraper:
         # Initialize credential handling
         self.current_credential_index = 0
         self.creds_ring = CredentialsRingBuffer(opts.credentials)
+        self.post_repo: Optional[PostSummaryListRepository] = None
 
     def get_posts(self, account_ids: str) -> Iterable[Post]:
         """Scrape posts from the given account IDs.
@@ -53,11 +56,22 @@ class Scraper:
         # Iterate through the credentials in a ring buffer fashion
         for cred in self.creds_ring.next():
             # Login using the current credential
-            login_repo.login(cred.username, cred.password)
-
+            login_resp = login_repo.login(cred.username, cred.password)
+            login_repo, post_repo = self.deps_builder.build_deps(self.opts, req=login_resp.requester)
+            self.post_repo = post_repo
             # Get posts using the post repository and stop conditions
             gen = post_repo.get_posts(account_ids, self.opts.stop_conditions)
 
             # Yield each post
             for post in gen:
                 yield post
+
+    def get_post_details(self, post_id: str) -> PostDetails:
+        if self.post_repo is None:
+            raise ValueError("Post repository is not initialized")
+        return self.post_repo.get_post_details(post_id)
+
+    def get_latest_cursor(self) -> Optional[str]:
+        if self.post_repo is None:
+            raise ValueError("Post repository is not initialized")
+        return self.post_repo.get_cursor()

@@ -2,16 +2,12 @@ import abc
 import base64
 import json
 import time
-from typing import List, Optional
+from typing import Optional
 
 import requests
 
 from facebook_simple_scraper.details.extractor import GQLPostDetailExtractor, PostDetails
-from facebook_simple_scraper.entities import Comment, Reaction
 from facebook_simple_scraper.requester.requester import Requester
-
-
-
 
 
 class PostDetailRepository(abc.ABC):
@@ -91,12 +87,14 @@ class GraphqlCommentsRepository(PostDetailRepository):
             'content-type': 'application/x-www-form-urlencoded',
             'origin': 'https://web.facebook.com',
             'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
             # "accept-language": "es,en-US;q=0.9,en;q=0.8,pt;q=0.7",
             # "priority": "u=1, i",
             # "sec-ch-prefers-color-scheme": "dark",
             # "sec-ch-ua": "\"Chromium\"\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"\"",
-            # "sec-ch-ua-full-version-list": "\"Chromium\";v=\"124.0.6367.93\", \"Google Chrome\";v=\"124.0.6367.93\", \"Not-A.Brand\";v=\"99.0.0.0\"",
+            # "sec-ch-ua-full-version-list": "\"Chromium\";v=\"124.0.6367.93\",
+            # \"Google Chrome\";v=\"124.0.6367.93\", \"Not-A.Brand\";v=\"99.0.0.0\"",
             # "sec-ch-ua-mobile": "?0",
             # "sec-ch-ua-model": "\"\"",
             # "sec-ch-ua-platform": "\"macOS\"",
