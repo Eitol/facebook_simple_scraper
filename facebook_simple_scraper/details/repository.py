@@ -23,6 +23,7 @@ class GraphqlCommentsRepository(PostDetailRepository):
         self._cursor = None
         self._extractor = GQLPostDetailExtractor()
         self._await_time = await_time
+        self._no_auth_session = requests.Session()
 
     def get_details(self, post_id: str, max_comments: int) -> Optional[PostDetails]:
         url = "https://web.facebook.com/api/graphql/"
@@ -37,7 +38,7 @@ class GraphqlCommentsRepository(PostDetailRepository):
         while True:
             payload_dict = self._build_payload(post_id, variables)
             headers = self._build_headers()
-            response = requests.request("POST", url, headers=headers, data=payload_dict)
+            response = self._no_auth_session.request("POST", url, headers=headers, data=payload_dict)
             detail = self._extractor.extract(response.text)
             all_comments.extend(detail.comments)
             if detail.next_cursor is None or len(all_comments) >= max_comments:
