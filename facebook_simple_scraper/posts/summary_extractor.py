@@ -120,14 +120,10 @@ class PostSummaryListExtractor(PostSummaryHTMLParser):
         :param date_string:
         :return:
         """
-
-        now = datetime.now()
         try:
-            date_parsed = parse(date_string.replace('at', ''))
-        except:
-            date_parsed = dateparser.parse(date_string)
-        return datetime(now.year, now.month, date_parsed.day,
-                        date_parsed.hour, date_parsed.minute)
+            return dateparser.parse(date_string)
+        except Exception as e:
+            return parse(date_string.replace('at', ''))
 
     @staticmethod
     def _extract_next_page_params(soup: BeautifulSoup) -> Tuple[str, str]:

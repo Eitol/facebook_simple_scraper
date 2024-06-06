@@ -19,7 +19,7 @@ class TestE2E(unittest.TestCase):
             comments_repository=GraphqlCommentsRepository(req),
             max_comments=10
         ))
-        gen = repo.get_posts('NintendoLatAm', [StopAfterNPosts(2)])
+        gen = repo.get_posts('tenpocl', [StopAfterNPosts(2)])
         posts = list(gen)
         for post in posts:
             self.assertGreater(len(posts), 0)
