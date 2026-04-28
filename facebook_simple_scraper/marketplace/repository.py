@@ -82,11 +82,8 @@ class MarketplaceVehicleRepository:
     def _build_url(
         filters: MarketplaceVehicleFilters, cursor: Optional[str] = None
     ) -> str:
-        location = (filters.location or "").strip("/ ")
-        if not location:
-            raise ValueError("MarketplaceVehicleFilters.location is required")
+        params: List[tuple] = [("category_id", filters.category_id)]
 
-        params: List[tuple] = []
         if filters.query:
             params.append(("query", filters.query))
         if filters.condition == VehicleCondition.NEW:
@@ -104,14 +101,22 @@ class MarketplaceVehicleRepository:
             params.append(("availability", "out of stock"))
         if filters.days_since_listed and filters.days_since_listed != DaysSinceListed.ANY:
             params.append(("daysSinceListed", str(int(filters.days_since_listed))))
+        if filters.latitude is not None and filters.longitude is not None:
+            params.append(("latitude", str(filters.latitude)))
+            params.append(("longitude", str(filters.longitude)))
+            params.append(("radius", str(filters.radius_km)))
         if cursor:
             params.append(("cursor", cursor))
         params.append(("exact", "false"))
 
         qs = urlencode(params)
-        return (
-            f"https://www.facebook.com/marketplace/{location}/vehicles/?{qs}"
-        )
+        slug = (filters.location or "").strip("/ ")
+        if slug:
+            # Keep the vanity-URL form when a slug is provided, otherwise
+            # use the generic search endpoint scoped via lat/lng (or the
+            # IP-derived default location for unauthenticated requests).
+            return f"https://www.facebook.com/marketplace/{slug}/search/?{qs}"
+        return f"https://www.facebook.com/marketplace/category/search/?{qs}"
 
     def _sleep(self) -> None:
         if self._sleep_time_max <= 0:

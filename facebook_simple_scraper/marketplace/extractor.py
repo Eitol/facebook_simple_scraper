@@ -150,6 +150,13 @@ class MarketplaceListingsExtractor(MarketplaceListingsParser):
             if isinstance(cond, str):
                 is_new = cond.upper() == "NEW"
 
+        is_sold = node.get("is_sold")
+        if not isinstance(is_sold, bool):
+            is_sold = None
+        is_pending = node.get("is_pending")
+        if not isinstance(is_pending, bool):
+            is_pending = None
+
         url = f"https://www.facebook.com/marketplace/item/{listing_id}/"
 
         return MarketplaceVehicleListing(
@@ -165,6 +172,8 @@ class MarketplaceListingsExtractor(MarketplaceListingsParser):
             creation_time=creation_time,
             mileage=mileage,
             is_new=is_new,
+            is_sold=is_sold,
+            is_pending=is_pending,
             raw=node if _RAW_DEBUG else None,
         )
 

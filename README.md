@@ -55,7 +55,10 @@ opts = ScraperOptions(
 scraper = Scraper(opts)
 
 filters = MarketplaceVehicleFilters(
-    location="santiago",                          # Facebook location slug
+    # Location: prefer lat/lng (works for any city). The slug is only honored
+    # by Facebook for vanity URLs; arbitrary slugs are silently ignored.
+    latitude=-33.4489, longitude=-70.6693, radius_km=80,   # Santiago, Chile
+    # location="santiago",                        # optional FB vanity slug
     condition=VehicleCondition.USED,              # NEW | USED | ALL
     query="toyota corolla",                       # optional
     availability=VehicleAvailability.IN_STOCK,    # IN_STOCK | OUT_OF_STOCK | ALL
@@ -63,8 +66,13 @@ filters = MarketplaceVehicleFilters(
 )
 
 for listing in scraper.get_marketplace_vehicles(filters):
-    print(listing.title, listing.price, listing.location, listing.url)
+    print(listing.title, listing.price, listing.location,
+          "SOLD" if listing.is_sold else "", listing.url)
 ```
+
+> ⚠️ Facebook ignores the `latitude`/`longitude` parameters for unauthenticated
+> requests and falls back to IP-based geolocation. Provide valid login
+> credentials in `ScraperOptions` so the session location is honored.
  
 🔒 License
 MIT License (Do whatever you want with this code, but don't blame me if something goes wrong)

@@ -44,28 +44,45 @@ class MarketplaceVehicleFilters(BaseModel):
     """Filters used to search vehicle listings in Facebook Marketplace.
 
     Attributes:
-        location: Facebook location slug (e.g. ``santiago``,
-            ``buenos-aires``, ``miami``). Required, since Marketplace
-            results are scoped to a location.
+        location: Optional Facebook location vanity slug (e.g. ``miami``,
+            ``buenos-aires``). Only some cities have a vanity slug; for
+            arbitrary locations use ``latitude``/``longitude``/``radius_km``
+            instead. If neither is provided, Facebook falls back to the
+            location detected from the request IP.
+        latitude: Latitude of the search center (decimal degrees).
+        longitude: Longitude of the search center (decimal degrees).
+        radius_km: Search radius in kilometers (defaults to 65, FB default).
         condition: Whether to look for ``NEW``, ``USED`` or ``ALL`` vehicles.
         query: Optional free-text search (e.g. ``toyota corolla``).
         min_price: Optional minimum price filter.
         max_price: Optional maximum price filter.
         availability: Whether to look for listings that are still
-            available (``IN_STOCK``), already sold (``OUT_OF_STOCK``)
-            or both (``ALL``, default).
+            available (``IN_STOCK``), already sold/pending
+            (``OUT_OF_STOCK``) or both (``ALL``, default).
         days_since_listed: Restrict results to listings posted within
             the last day / week / month. ``ANY`` (default) does not
             restrict by date.
+        category_id: Marketplace category id. Defaults to the generic
+            "Vehicles" category. Only override if you know what you are
+            doing (e.g. to scope to motorcycles, RVs, etc).
+
+    Note:
+        Facebook only honors ``latitude``/``longitude`` (and most other
+        filters) for **logged-in** sessions. Unauthenticated requests
+        always use the IP-based location.
     """
 
-    location: str
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    radius_km: int = 65
     condition: VehicleCondition = VehicleCondition.ALL
     query: Optional[str] = None
     min_price: Optional[int] = None
     max_price: Optional[int] = None
     availability: VehicleAvailability = VehicleAvailability.ALL
     days_since_listed: DaysSinceListed = DaysSinceListed.ANY
+    category_id: str = "807311116002614"
 
 
 class MarketplaceVehicleListing(BaseModel):
@@ -83,6 +100,8 @@ class MarketplaceVehicleListing(BaseModel):
     creation_time: Optional[datetime] = None
     mileage: Optional[str] = None
     is_new: Optional[bool] = None
+    is_sold: Optional[bool] = None
+    is_pending: Optional[bool] = None
     raw: Optional[dict] = None
 
 

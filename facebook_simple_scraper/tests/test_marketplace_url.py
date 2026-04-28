@@ -18,16 +18,31 @@ def _qs(filters: MarketplaceVehicleFilters) -> dict:
 class TestMarketplaceURLBuilder(unittest.TestCase):
     def test_minimal_url(self):
         url = MarketplaceVehicleRepository._build_url(
-            MarketplaceVehicleFilters(location="santiago")
+            MarketplaceVehicleFilters()
         )
         parsed = urlparse(url)
         self.assertEqual(parsed.netloc, "www.facebook.com")
-        self.assertEqual(parsed.path, "/marketplace/santiago/vehicles/")
-        self.assertEqual(parse_qs(parsed.query).get("exact"), ["false"])
+        self.assertEqual(parsed.path, "/marketplace/category/search/")
+        qs = parse_qs(parsed.query)
+        self.assertEqual(qs["category_id"], ["807311116002614"])
+        self.assertEqual(qs.get("exact"), ["false"])
+
+    def test_slug_url(self):
+        url = MarketplaceVehicleRepository._build_url(
+            MarketplaceVehicleFilters(location="miami")
+        )
+        self.assertIn("/marketplace/miami/search/", url)
+
+    def test_lat_lng(self):
+        qs = _qs(MarketplaceVehicleFilters(
+            latitude=-33.4489, longitude=-70.6693, radius_km=50,
+        ))
+        self.assertEqual(qs["latitude"], ["-33.4489"])
+        self.assertEqual(qs["longitude"], ["-70.6693"])
+        self.assertEqual(qs["radius"], ["50"])
 
     def test_query_and_condition(self):
         qs = _qs(MarketplaceVehicleFilters(
-            location="santiago",
             condition=VehicleCondition.NEW,
             query="toyota corolla",
         ))
@@ -35,56 +50,36 @@ class TestMarketplaceURLBuilder(unittest.TestCase):
         self.assertEqual(qs["itemCondition"], ["NEW"])
 
     def test_used_condition_groups_subconditions(self):
-        qs = _qs(MarketplaceVehicleFilters(
-            location="santiago", condition=VehicleCondition.USED,
-        ))
+        qs = _qs(MarketplaceVehicleFilters(condition=VehicleCondition.USED))
         self.assertIn("USED_LIKE_NEW", qs["itemCondition"][0])
 
     def test_availability_in_stock(self):
-        qs = _qs(MarketplaceVehicleFilters(
-            location="santiago", availability=VehicleAvailability.IN_STOCK,
-        ))
+        qs = _qs(MarketplaceVehicleFilters(availability=VehicleAvailability.IN_STOCK))
         self.assertEqual(qs["availability"], ["in stock"])
 
     def test_availability_out_of_stock(self):
-        qs = _qs(MarketplaceVehicleFilters(
-            location="santiago", availability=VehicleAvailability.OUT_OF_STOCK,
-        ))
+        qs = _qs(MarketplaceVehicleFilters(availability=VehicleAvailability.OUT_OF_STOCK))
         self.assertEqual(qs["availability"], ["out of stock"])
 
     def test_availability_all_omits_param(self):
-        qs = _qs(MarketplaceVehicleFilters(
-            location="santiago", availability=VehicleAvailability.ALL,
-        ))
+        qs = _qs(MarketplaceVehicleFilters(availability=VehicleAvailability.ALL))
         self.assertNotIn("availability", qs)
 
     def test_days_since_listed(self):
         for days in (DaysSinceListed.LAST_DAY,
                      DaysSinceListed.LAST_WEEK,
                      DaysSinceListed.LAST_MONTH):
-            qs = _qs(MarketplaceVehicleFilters(
-                location="santiago", days_since_listed=days,
-            ))
+            qs = _qs(MarketplaceVehicleFilters(days_since_listed=days))
             self.assertEqual(qs["daysSinceListed"], [str(int(days))])
 
     def test_days_since_listed_any_omits_param(self):
-        qs = _qs(MarketplaceVehicleFilters(
-            location="santiago", days_since_listed=DaysSinceListed.ANY,
-        ))
+        qs = _qs(MarketplaceVehicleFilters(days_since_listed=DaysSinceListed.ANY))
         self.assertNotIn("daysSinceListed", qs)
 
     def test_price_range(self):
-        qs = _qs(MarketplaceVehicleFilters(
-            location="santiago", min_price=1000, max_price=20000,
-        ))
+        qs = _qs(MarketplaceVehicleFilters(min_price=1000, max_price=20000))
         self.assertEqual(qs["minPrice"], ["1000"])
         self.assertEqual(qs["maxPrice"], ["20000"])
-
-    def test_empty_location_raises(self):
-        with self.assertRaises(ValueError):
-            MarketplaceVehicleRepository._build_url(
-                MarketplaceVehicleFilters(location=" / ")
-            )
 
 
 if __name__ == "__main__":
