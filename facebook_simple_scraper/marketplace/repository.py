@@ -6,8 +6,10 @@ from urllib.parse import urlencode
 
 from facebook_simple_scraper.entities import StopCondition
 from facebook_simple_scraper.marketplace.entities import (
+    DaysSinceListed,
     MarketplaceVehicleFilters,
     MarketplaceVehicleListing,
+    VehicleAvailability,
     VehicleCondition,
 )
 from facebook_simple_scraper.marketplace.extractor import (
@@ -96,6 +98,12 @@ class MarketplaceVehicleRepository:
             params.append(("minPrice", str(filters.min_price)))
         if filters.max_price is not None:
             params.append(("maxPrice", str(filters.max_price)))
+        if filters.availability == VehicleAvailability.IN_STOCK:
+            params.append(("availability", "in stock"))
+        elif filters.availability == VehicleAvailability.OUT_OF_STOCK:
+            params.append(("availability", "out of stock"))
+        if filters.days_since_listed and filters.days_since_listed != DaysSinceListed.ANY:
+            params.append(("daysSinceListed", str(int(filters.days_since_listed))))
         if cursor:
             params.append(("cursor", cursor))
         params.append(("exact", "false"))

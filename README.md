@@ -40,7 +40,9 @@ from facebook_simple_scraper.scraper import Scraper
 from facebook_simple_scraper.entities import ScraperOptions, LoginCredentials
 from facebook_simple_scraper.stop_conditions import StopAfterNPosts
 from facebook_simple_scraper.marketplace.entities import (
+    DaysSinceListed,
     MarketplaceVehicleFilters,
+    VehicleAvailability,
     VehicleCondition,
 )
 
@@ -53,9 +55,11 @@ opts = ScraperOptions(
 scraper = Scraper(opts)
 
 filters = MarketplaceVehicleFilters(
-    location="santiago",            # Facebook location slug
-    condition=VehicleCondition.USED, # NEW | USED | ALL
-    query="toyota corolla",          # optional
+    location="santiago",                          # Facebook location slug
+    condition=VehicleCondition.USED,              # NEW | USED | ALL
+    query="toyota corolla",                       # optional
+    availability=VehicleAvailability.IN_STOCK,    # IN_STOCK | OUT_OF_STOCK | ALL
+    days_since_listed=DaysSinceListed.LAST_WEEK,  # LAST_DAY | LAST_WEEK | LAST_MONTH | ANY
 )
 
 for listing in scraper.get_marketplace_vehicles(filters):

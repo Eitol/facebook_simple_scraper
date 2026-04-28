@@ -13,6 +13,33 @@ class VehicleCondition(str, Enum):
     ALL = "ALL"
 
 
+class VehicleAvailability(str, Enum):
+    """Filter for the availability of the listing.
+
+    Mirrors the ``availability`` query parameter Facebook uses on
+    Marketplace search URLs (``in stock`` / ``out of stock``).
+    ``ALL`` means do not constrain availability.
+    """
+
+    IN_STOCK = "IN_STOCK"
+    OUT_OF_STOCK = "OUT_OF_STOCK"
+    ALL = "ALL"
+
+
+class DaysSinceListed(int, Enum):
+    """Filter for how recently the listing was published.
+
+    Facebook Marketplace only exposes the values 1, 7 and 30 in its UI
+    for the ``daysSinceListed`` query parameter. ``ANY`` means do not
+    constrain the date.
+    """
+
+    LAST_DAY = 1
+    LAST_WEEK = 7
+    LAST_MONTH = 30
+    ANY = 0
+
+
 class MarketplaceVehicleFilters(BaseModel):
     """Filters used to search vehicle listings in Facebook Marketplace.
 
@@ -24,6 +51,12 @@ class MarketplaceVehicleFilters(BaseModel):
         query: Optional free-text search (e.g. ``toyota corolla``).
         min_price: Optional minimum price filter.
         max_price: Optional maximum price filter.
+        availability: Whether to look for listings that are still
+            available (``IN_STOCK``), already sold (``OUT_OF_STOCK``)
+            or both (``ALL``, default).
+        days_since_listed: Restrict results to listings posted within
+            the last day / week / month. ``ANY`` (default) does not
+            restrict by date.
     """
 
     location: str
@@ -31,6 +64,8 @@ class MarketplaceVehicleFilters(BaseModel):
     query: Optional[str] = None
     min_price: Optional[int] = None
     max_price: Optional[int] = None
+    availability: VehicleAvailability = VehicleAvailability.ALL
+    days_since_listed: DaysSinceListed = DaysSinceListed.ANY
 
 
 class MarketplaceVehicleListing(BaseModel):
