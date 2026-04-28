@@ -4,6 +4,11 @@ from facebook_simple_scraper.credentials_ring import CredentialsRingBuffer
 from facebook_simple_scraper.dependency_builder import AbstractScraperDependencyBuilder, DefaultScraperDependencyBuilder
 from facebook_simple_scraper.details.extractor import PostDetails
 from facebook_simple_scraper.entities import ScraperOptions, Post
+from facebook_simple_scraper.marketplace.entities import (
+    MarketplaceVehicleFilters,
+    MarketplaceVehicleListing,
+)
+from facebook_simple_scraper.marketplace.repository import MarketplaceVehicleRepository
 from facebook_simple_scraper.posts.summary_repository import PostSummaryListRepository
 
 
@@ -40,6 +45,7 @@ class Scraper:
         self.current_credential_index = 0
         self.creds_ring = CredentialsRingBuffer(opts.credentials)
         self.post_repo: Optional[PostSummaryListRepository] = None
+        self.marketplace_repo: Optional[MarketplaceVehicleRepository] = None
 
     def get_posts(self, account_ids: str) -> Iterable[Post]:
         """Scrape posts from the given account IDs.
@@ -51,14 +57,17 @@ class Scraper:
             Iterable[Post]: A generator yielding posts.
         """
         # Build the necessary dependencies
-        login_repo, post_repo = self.deps_builder.build_deps(self.opts)
+        login_repo, post_repo, marketplace_repo = self.deps_builder.build_deps(self.opts)
 
         # Iterate through the credentials in a ring buffer fashion
         for cred in self.creds_ring.next():
             # Login using the current credential
             login_resp = login_repo.login(cred.username, cred.password)
-            login_repo, post_repo = self.deps_builder.build_deps(self.opts, req=login_resp.requester)
+            login_repo, post_repo, marketplace_repo = self.deps_builder.build_deps(
+                self.opts, req=login_resp.requester
+            )
             self.post_repo = post_repo
+            self.marketplace_repo = marketplace_repo
             # Get posts using the post repository and stop conditions
             gen = post_repo.get_posts(account_ids, self.opts.stop_conditions)
 
@@ -75,3 +84,32 @@ class Scraper:
         if self.post_repo is None:
             raise ValueError("Post repository is not initialized")
         return self.post_repo.get_cursor()
+
+    def get_marketplace_vehicles(
+        self, filters: MarketplaceVehicleFilters
+    ) -> Iterable[MarketplaceVehicleListing]:
+        """Search vehicle listings in Facebook Marketplace.
+
+        Logs in (re-using a stored session if available) and yields
+        :class:`MarketplaceVehicleListing` objects matching ``filters``.
+        Stop conditions configured in :class:`ScraperOptions.stop_conditions`
+        are applied between pages, just like ``get_posts``.
+
+        Args:
+            filters: Filters to apply (location, condition, optional query).
+
+        Yields:
+            Iterable[MarketplaceVehicleListing]: Listings matching the filters.
+        """
+        login_repo, _post_repo, marketplace_repo = self.deps_builder.build_deps(self.opts)
+
+        for cred in self.creds_ring.next():
+            login_resp = login_repo.login(cred.username, cred.password)
+            login_repo, post_repo, marketplace_repo = self.deps_builder.build_deps(
+                self.opts, req=login_resp.requester
+            )
+            self.post_repo = post_repo
+            self.marketplace_repo = marketplace_repo
+            for listing in marketplace_repo.search(filters, self.opts.stop_conditions or []):
+                yield listing
+            return

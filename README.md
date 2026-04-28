@@ -6,6 +6,7 @@ Welcome to the Facebook Post Scraper project! Our tool allows you to scrape post
 
 - Post Scraping: Scrapes individual posts from a Facebook page, capturing all the details that accompany the post.
 - Comment Scraping: Fetches the comments under each post. This can provide you with valuable audience feedback and participation related to each post.
+- **Marketplace Vehicle Search**: Search vehicle listings on Facebook Marketplace filtered by location, condition (new/used) and an optional free-text query.
 
  
 ### 📄Usage
@@ -27,6 +28,38 @@ opts = ScraperOptions(
 scraper = Scraper(opts)
 post = scraper.get_posts("NintendoLatAm")
 print(list(post))
+```
+
+#### 🚗 Marketplace vehicle search
+
+Search vehicle listings in Facebook Marketplace filtered by location,
+condition and (optionally) a search text:
+
+```python
+from facebook_simple_scraper.scraper import Scraper
+from facebook_simple_scraper.entities import ScraperOptions, LoginCredentials
+from facebook_simple_scraper.stop_conditions import StopAfterNPosts
+from facebook_simple_scraper.marketplace.entities import (
+    MarketplaceVehicleFilters,
+    VehicleCondition,
+)
+
+opts = ScraperOptions(
+    credentials=[LoginCredentials(username="me@example.com", password="***")],
+    stop_conditions=[StopAfterNPosts(50)],
+    sleep_time_min=2,
+    sleep_time_max=5,
+)
+scraper = Scraper(opts)
+
+filters = MarketplaceVehicleFilters(
+    location="santiago",            # Facebook location slug
+    condition=VehicleCondition.USED, # NEW | USED | ALL
+    query="toyota corolla",          # optional
+)
+
+for listing in scraper.get_marketplace_vehicles(filters):
+    print(listing.title, listing.price, listing.location, listing.url)
 ```
  
 🔒 License

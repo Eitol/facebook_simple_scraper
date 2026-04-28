@@ -6,6 +6,10 @@ from facebook_simple_scraper.entities import ScraperOptions
 from facebook_simple_scraper.login.login import MobileBasicLoginRepository
 from facebook_simple_scraper.login.params import MbasicLoginParamsRepository
 from facebook_simple_scraper.login.session_storage import LocalFileSessionStorage
+from facebook_simple_scraper.marketplace.repository import (
+    MarketplaceVehicleRepository,
+    build_default_marketplace_repository,
+)
 from facebook_simple_scraper.posts.summary_extractor import PostSummaryListExtractor
 from facebook_simple_scraper.posts.summary_repository import PostSummaryListRepository, GetPostOptions
 from facebook_simple_scraper.requester import requester
@@ -16,7 +20,9 @@ class AbstractScraperDependencyBuilder:
     """Abstract class for building dependencies for a web scraper."""
 
     @staticmethod
-    def build_deps(opts: ScraperOptions) -> Tuple[MobileBasicLoginRepository, PostSummaryListRepository]:
+    def build_deps(
+        opts: ScraperOptions,
+    ) -> Tuple[MobileBasicLoginRepository, PostSummaryListRepository, MarketplaceVehicleRepository]:
         """Build dependencies required for the scraper. """
         raise NotImplementedError()
 
@@ -33,7 +39,7 @@ class DefaultScraperDependencyBuilder:
 
     @staticmethod
     def build_deps(opts: ScraperOptions, req: Optional[Requester] = None) -> Tuple[
-        MobileBasicLoginRepository, PostSummaryListRepository]:
+        MobileBasicLoginRepository, PostSummaryListRepository, MarketplaceVehicleRepository]:
         """Build the default dependencies for the scraper.
 
         Args:
@@ -80,5 +86,13 @@ class DefaultScraperDependencyBuilder:
         # Initialize the post summary list repository
         post_repo = PostSummaryListRepository(post_opts)
 
-        # Return the login and post repositories
-        return login_repo, post_repo
+        # Initialize the marketplace repository (shares the same logged-in
+        # requester so the user's session cookies are reused).
+        marketplace_repo = build_default_marketplace_repository(
+            requester=req,
+            sleep_time_min=opts.sleep_time_min,
+            sleep_time_max=opts.sleep_time_max,
+        )
+
+        # Return the login, post and marketplace repositories
+        return login_repo, post_repo, marketplace_repo
