@@ -1,2 +1,2 @@
 .idea
-test_sessions/*
+test_sessions/*__pycache__/
