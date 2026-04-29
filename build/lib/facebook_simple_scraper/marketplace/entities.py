@@ -98,8 +98,6 @@ class MarketplaceVehicleListing(BaseModel):
     location: Optional[str] = None
     image_url: Optional[str] = None
     seller_name: Optional[str] = None
-    seller_id: Optional[str] = None
-    seller_url: Optional[str] = None
     creation_time: Optional[datetime] = None
     mileage: Optional[str] = None
     is_new: Optional[bool] = None
@@ -134,8 +132,6 @@ class MarketplaceListingDetail:
     location: Optional[str]
     images: List[str]
     seller_name: Optional[str]
-    seller_id: Optional[str]
-    seller_url: Optional[str]
     creation_time: Optional[datetime]
     is_sold: Optional[bool]
     is_pending: Optional[bool]
@@ -146,5 +142,4 @@ class MarketplaceListingDetail:
     vehicle_transmission: Optional[str] = None
     vehicle_fuel_type: Optional[str] = None
     vehicle_exterior_color: Optional[str] = None
-    vehicle_interior_color: Optional[str] = None
     raw: Optional[dict] = None

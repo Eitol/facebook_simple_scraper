@@ -120,23 +120,11 @@ class MarketplaceListingsExtractor(MarketplaceListingsParser):
             if isinstance(uri, str):
                 image_url = uri
 
-        # Seller name, id and profile URL
+        # Seller name
         seller_name: Optional[str] = None
-        seller_id: Optional[str] = None
-        seller_url: Optional[str] = None
         seller = node.get("marketplace_listing_seller") or node.get("seller") or {}
         if isinstance(seller, dict):
             seller_name = seller.get("name")
-            raw_id = seller.get("id")
-            if raw_id:
-                seller_id = str(raw_id)
-        # Fall back to logging_id / reportable_ent_id (available without login)
-        if not seller_id:
-            raw_id = node.get("logging_id") or node.get("reportable_ent_id")
-            if raw_id:
-                seller_id = str(raw_id)
-        if seller_id:
-            seller_url = f"https://www.facebook.com/profile.php?id={seller_id}"
 
         # Creation time
         creation_time: Optional[datetime] = None
@@ -182,8 +170,6 @@ class MarketplaceListingsExtractor(MarketplaceListingsParser):
             location=location,
             image_url=image_url,
             seller_name=seller_name,
-            seller_id=seller_id,
-            seller_url=seller_url,
             creation_time=creation_time,
             mileage=mileage,
             is_new=is_new,
@@ -285,23 +271,11 @@ class MarketplaceDetailExtractor:
             if isinstance(uri, str):
                 images.append(uri)
 
-        # Seller name, id and profile URL
+        # Seller name
         seller_name: Optional[str] = None
-        seller_id: Optional[str] = None
-        seller_url: Optional[str] = None
         seller = node.get("marketplace_listing_seller") or node.get("seller") or {}
         if isinstance(seller, dict):
             seller_name = seller.get("name")
-            raw_id = seller.get("id")
-            if raw_id:
-                seller_id = str(raw_id)
-        # Fall back to logging_id / reportable_ent_id (available without login)
-        if not seller_id:
-            raw_id = node.get("logging_id") or node.get("reportable_ent_id")
-            if raw_id:
-                seller_id = str(raw_id)
-        if seller_id:
-            seller_url = f"https://www.facebook.com/profile.php?id={seller_id}"
 
         # Description — FB uses redacted_description for the visible snippet
         description: Optional[str] = None
@@ -350,8 +324,6 @@ class MarketplaceDetailExtractor:
             location=location,
             images=images,
             seller_name=seller_name,
-            seller_id=seller_id,
-            seller_url=seller_url,
             creation_time=creation_time,
             is_sold=is_sold,
             is_pending=is_pending,
@@ -362,7 +334,6 @@ class MarketplaceDetailExtractor:
             vehicle_transmission=_str_or_none(node.get("vehicle_transmission_type")),
             vehicle_fuel_type=_str_or_none(node.get("vehicle_fuel_type")),
             vehicle_exterior_color=_str_or_none(node.get("vehicle_exterior_color")),
-            vehicle_interior_color=_str_or_none(node.get("vehicle_interior_color")) or None,
             raw=node if _RAW_DEBUG else None,
         )
 

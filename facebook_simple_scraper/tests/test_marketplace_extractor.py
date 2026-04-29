@@ -9,6 +9,7 @@ from facebook_simple_scraper.marketplace.extractor import (
 
 
 _DETAIL_HTML_PATH = "/tmp/detail.html"
+_DETAIL2_HTML_PATH = "/tmp/detail2.html"
 
 
 def _make_html(payload: dict) -> str:
@@ -47,7 +48,8 @@ class TestMarketplaceListingsExtractor(unittest.TestCase):
                                         "image": {"uri": "https://cdn.fb/img.jpg"}
                                     },
                                     "marketplace_listing_seller": {
-                                        "name": "Juan Perez"
+                                        "name": "Juan Perez",
+                                        "id": "12345",
                                     },
                                     "creation_time": 1700000000,
                                 }
@@ -72,6 +74,8 @@ class TestMarketplaceListingsExtractor(unittest.TestCase):
         self.assertEqual(listing.location, "Santiago, RM")
         self.assertEqual(listing.image_url, "https://cdn.fb/img.jpg")
         self.assertEqual(listing.seller_name, "Juan Perez")
+        self.assertEqual(listing.seller_id, "12345")
+        self.assertIn("profile.php?id=12345", listing.seller_url)
         self.assertIn("/marketplace/item/123456789", listing.url)
         self.assertEqual(result.cursor, "ABC123")
 
@@ -180,6 +184,47 @@ class TestMarketplaceDetailExtractor(unittest.TestCase):
         self.assertIsNotNone(detail)
         self.assertEqual(len(detail.images), 1)
         self.assertEqual(detail.description, "Nice car")
+
+    def test_seller_url_from_logging_id(self):
+        """seller_url should be constructed from logging_id when seller.id is absent."""
+        node = {
+            "__typename": "GroupCommerceProductItem",
+            "id": "55",
+            "marketplace_listing_title": "Car",
+            "logging_id": "99887766",
+        }
+        html = _make_html({"listing": node})
+        detail = MarketplaceDetailExtractor().extract(html, "55")
+        self.assertIsNotNone(detail)
+        self.assertIsNotNone(detail.seller_url)
+        self.assertIn("profile.php?id=99887766", detail.seller_url)
+
+    def test_vehicle_color_fields(self):
+        """vehicle_exterior_color and vehicle_interior_color should be extracted."""
+        html = self._make_detail_html(
+            "77",
+            vehicle_exterior_color="grey",
+            vehicle_interior_color="black",
+        )
+        detail = MarketplaceDetailExtractor().extract(html, "77")
+        self.assertEqual(detail.vehicle_exterior_color, "grey")
+        self.assertEqual(detail.vehicle_interior_color, "black")
+
+    def test_vehicle_interior_color_empty_string_becomes_none(self):
+        html = self._make_detail_html("88", vehicle_interior_color="")
+        detail = MarketplaceDetailExtractor().extract(html, "88")
+        self.assertIsNone(detail.vehicle_interior_color)
+
+    @unittest.skipUnless(os.path.exists(_DETAIL2_HTML_PATH), "detail2.html not available")
+    def test_live_detail2_html_color_and_seller(self):
+        """Integration test: listing 1737150430583101 should have grey exterior color."""
+        with open(_DETAIL2_HTML_PATH) as f:
+            html = f.read()
+        detail = MarketplaceDetailExtractor().extract(html, "1737150430583101")
+        self.assertIsNotNone(detail)
+        self.assertEqual(detail.vehicle_exterior_color, "grey")
+        self.assertIsNotNone(detail.seller_url)
+        self.assertIn("profile.php?id=", detail.seller_url)
 
     @unittest.skipUnless(os.path.exists(_DETAIL_HTML_PATH), "detail.html not available")
     def test_live_detail_html(self):
