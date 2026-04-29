@@ -5,6 +5,7 @@ from facebook_simple_scraper.dependency_builder import AbstractScraperDependency
 from facebook_simple_scraper.details.extractor import PostDetails
 from facebook_simple_scraper.entities import ScraperOptions, Post
 from facebook_simple_scraper.marketplace.entities import (
+    MarketplaceListingDetail,
     MarketplaceVehicleFilters,
     MarketplaceVehicleListing,
 )
@@ -113,3 +114,29 @@ class Scraper:
             for listing in marketplace_repo.search(filters, self.opts.stop_conditions or []):
                 yield listing
             return
+
+    def get_marketplace_vehicle_detail(
+        self, listing_id: str
+    ) -> Optional[MarketplaceListingDetail]:
+        """Fetch the full detail for a single Marketplace listing.
+
+        Requires that :meth:`get_marketplace_vehicles` has been called first
+        (so the session / requester is already initialized), or that the
+        scraper is configured with a valid credential.
+
+        Args:
+            listing_id: The numeric Facebook listing ID.
+
+        Returns:
+            A :class:`MarketplaceListingDetail` with photos, description and
+            vehicle attributes, or ``None`` if extraction failed.
+        """
+        login_repo, _post_repo, marketplace_repo = self.deps_builder.build_deps(self.opts)
+
+        for cred in self.creds_ring.next():
+            login_resp = login_repo.login(cred.username, cred.password)
+            _, _, marketplace_repo = self.deps_builder.build_deps(
+                self.opts, req=login_resp.requester
+            )
+            self.marketplace_repo = marketplace_repo
+            return marketplace_repo.get_detail(listing_id)

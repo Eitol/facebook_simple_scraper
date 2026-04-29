@@ -7,12 +7,14 @@ from urllib.parse import urlencode
 from facebook_simple_scraper.entities import StopCondition
 from facebook_simple_scraper.marketplace.entities import (
     DaysSinceListed,
+    MarketplaceListingDetail,
     MarketplaceVehicleFilters,
     MarketplaceVehicleListing,
     VehicleAvailability,
     VehicleCondition,
 )
 from facebook_simple_scraper.marketplace.extractor import (
+    MarketplaceDetailExtractor,
     MarketplaceListingsExtractor,
     MarketplaceListingsParser,
 )
@@ -72,6 +74,22 @@ class MarketplaceVehicleRepository:
                 if cond.should_stop(accumulated):
                     return
             self._sleep()
+
+    def get_detail(self, listing_id: str) -> Optional[MarketplaceListingDetail]:
+        """Fetch and parse the detail page for a single listing.
+
+        Args:
+            listing_id: The numeric Facebook Marketplace listing ID (e.g.
+                ``"1257546456545056"``).
+
+        Returns:
+            A :class:`MarketplaceListingDetail` if data could be extracted,
+            ``None`` otherwise.
+        """
+        url = f"https://www.facebook.com/marketplace/item/{listing_id}/"
+        response = self._requester.request("GET", url)
+        extractor = MarketplaceDetailExtractor()
+        return extractor.extract(response.text, listing_id)
 
     def get_cursor(self) -> Optional[str]:
         return self._cursor

@@ -1,7 +1,14 @@
 import json
+import os
 import unittest
 
-from facebook_simple_scraper.marketplace.extractor import MarketplaceListingsExtractor
+from facebook_simple_scraper.marketplace.extractor import (
+    MarketplaceDetailExtractor,
+    MarketplaceListingsExtractor,
+)
+
+
+_DETAIL_HTML_PATH = "/tmp/detail.html"
 
 
 def _make_html(payload: dict) -> str:
@@ -82,6 +89,110 @@ class TestMarketplaceListingsExtractor(unittest.TestCase):
         result = MarketplaceListingsExtractor().extract("<html></html>")
         self.assertEqual(result.listings, [])
         self.assertIsNone(result.cursor)
+
+
+class TestMarketplaceDetailExtractor(unittest.TestCase):
+    def _make_detail_html(self, listing_id: str, **extra) -> str:
+        """Build a minimal detail-page HTML for *listing_id*."""
+        node = {
+            "__typename": "GroupCommerceProductItem",
+            "id": listing_id,
+            "marketplace_listing_title": "Honda Civic 2019",
+            "formatted_price": {"text": "$8,000"},
+            "listing_price": {"amount": "8000", "currency": "USD"},
+            "location_text": {"text": "Miami, FL"},
+            "redacted_description": {"text": "Great condition, low miles"},
+            "creation_time": 1700000000,
+            "is_sold": False,
+            "is_pending": False,
+            "listing_photos": [
+                {
+                    "__typename": "Photo",
+                    "image": {"uri": "https://cdn.fb/photo1.jpg"},
+                    "id": "p1",
+                },
+                {
+                    "__typename": "Photo",
+                    "image": {"uri": "https://cdn.fb/photo2.jpg"},
+                    "id": "p2",
+                },
+            ],
+        }
+        node.update(extra)
+        return _make_html({"listing": node})
+
+    def test_extracts_title_and_price(self):
+        html = self._make_detail_html("999")
+        detail = MarketplaceDetailExtractor().extract(html, "999")
+        self.assertIsNotNone(detail)
+        self.assertEqual(detail.id, "999")
+        self.assertEqual(detail.title, "Honda Civic 2019")
+        self.assertEqual(detail.price, "$8,000")
+        self.assertEqual(detail.price_amount, 8000.0)
+        self.assertEqual(detail.currency, "USD")
+
+    def test_extracts_images(self):
+        html = self._make_detail_html("999")
+        detail = MarketplaceDetailExtractor().extract(html, "999")
+        self.assertEqual(len(detail.images), 2)
+        self.assertIn("photo1.jpg", detail.images[0])
+        self.assertIn("photo2.jpg", detail.images[1])
+
+    def test_extracts_description_and_location(self):
+        html = self._make_detail_html("999")
+        detail = MarketplaceDetailExtractor().extract(html, "999")
+        self.assertEqual(detail.description, "Great condition, low miles")
+        self.assertEqual(detail.location, "Miami, FL")
+
+    def test_extracts_creation_time(self):
+        html = self._make_detail_html("999")
+        detail = MarketplaceDetailExtractor().extract(html, "999")
+        self.assertIsNotNone(detail.creation_time)
+        self.assertEqual(detail.creation_time.year, 2023)
+
+    def test_returns_none_for_unknown_id(self):
+        html = self._make_detail_html("999")
+        detail = MarketplaceDetailExtractor().extract(html, "000")
+        self.assertIsNone(detail)
+
+    def test_merges_multiple_nodes_for_same_id(self):
+        """Nodes with the same ID should be merged (photos + description)."""
+        node_a = {
+            "__typename": "GroupCommerceProductItem",
+            "id": "42",
+            "marketplace_listing_title": "Car",
+            "listing_photos": [
+                {"__typename": "Photo", "image": {"uri": "https://cdn.fb/img.jpg"}, "id": "p1"}
+            ],
+        }
+        node_b = {
+            "__typename": "GroupCommerceProductItem",
+            "id": "42",
+            "redacted_description": {"text": "Nice car"},
+        }
+        html = (
+            "<html><body>"
+            f"<script>x({json.dumps(node_a)});</script>"
+            f"<script>x({json.dumps(node_b)});</script>"
+            "</body></html>"
+        )
+        detail = MarketplaceDetailExtractor().extract(html, "42")
+        self.assertIsNotNone(detail)
+        self.assertEqual(len(detail.images), 1)
+        self.assertEqual(detail.description, "Nice car")
+
+    @unittest.skipUnless(os.path.exists(_DETAIL_HTML_PATH), "detail.html not available")
+    def test_live_detail_html(self):
+        """Integration test against the cached real detail page."""
+        with open(_DETAIL_HTML_PATH) as f:
+            html = f.read()
+        detail = MarketplaceDetailExtractor().extract(html, "1257546456545056")
+        self.assertIsNotNone(detail)
+        self.assertIsNotNone(detail.title)
+        self.assertGreater(len(detail.images), 5)
+        self.assertIsNotNone(detail.description)
+        self.assertIsNotNone(detail.creation_time)
+        self.assertEqual(detail.location, "El Monte, RM")
 
 
 if __name__ == "__main__":

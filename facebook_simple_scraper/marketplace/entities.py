@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
@@ -110,3 +111,35 @@ class MarketplaceVehicleList(BaseModel):
 
     listings: List[MarketplaceVehicleListing]
     cursor: Optional[str] = None
+
+
+@dataclass
+class MarketplaceListingDetail:
+    """Full detail for a single Facebook Marketplace listing.
+
+    Obtained by fetching ``/marketplace/item/<id>/`` and extracting the
+    embedded JSON. Includes all photos, the visible description text, and
+    any vehicle-specific attributes exposed by Facebook.
+    """
+
+    id: str
+    url: str
+    title: Optional[str]
+    price: Optional[str]
+    price_amount: Optional[float]
+    currency: Optional[str]
+    description: Optional[str]
+    location: Optional[str]
+    images: List[str]
+    seller_name: Optional[str]
+    creation_time: Optional[datetime]
+    is_sold: Optional[bool]
+    is_pending: Optional[bool]
+    mileage: Optional[str]
+    vehicle_make: Optional[str] = None
+    vehicle_model: Optional[str] = None
+    vehicle_condition: Optional[str] = None
+    vehicle_transmission: Optional[str] = None
+    vehicle_fuel_type: Optional[str] = None
+    vehicle_exterior_color: Optional[str] = None
+    raw: Optional[dict] = None

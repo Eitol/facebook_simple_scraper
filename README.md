@@ -70,6 +70,26 @@ for listing in scraper.get_marketplace_vehicles(filters):
           "SOLD" if listing.is_sold else "", listing.url)
 ```
 
+#### 🔍 Marketplace listing detail
+
+Fetch the full detail for a single listing — all photos, description text,
+publication date and vehicle attributes:
+
+```python
+from facebook_simple_scraper.marketplace.entities import MarketplaceListingDetail
+
+# listing_id can come from a MarketplaceVehicleListing.id returned above
+detail: MarketplaceListingDetail = scraper.get_marketplace_vehicle_detail("1234567890")
+
+print(detail.title)
+print(detail.price, detail.currency)
+print(detail.description)
+print(detail.location)
+print(detail.creation_time)
+for url in detail.images:
+    print(url)          # full-resolution photo URLs
+```
+
 > ⚠️ Facebook ignores the `latitude`/`longitude` parameters for unauthenticated
 > requests and falls back to IP-based geolocation. Provide valid login
 > credentials in `ScraperOptions` so the session location is honored.
