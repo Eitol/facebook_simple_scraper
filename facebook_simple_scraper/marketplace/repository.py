@@ -29,6 +29,23 @@ class GetMarketplaceVehiclesOptions:
     sleep_time_max: int = 10
 
 
+def _price_in_range(
+    price_amount: Optional[float], filters: MarketplaceVehicleFilters
+) -> bool:
+    """Return True if *price_amount* satisfies the min/max filters.
+
+    Listings without a parseable price are considered valid (returned).
+    Either bound may be ``None`` to indicate an open-ended range.
+    """
+    if price_amount is None:
+        return True
+    if filters.min_price is not None and price_amount < filters.min_price:
+        return False
+    if filters.max_price is not None and price_amount > filters.max_price:
+        return False
+    return True
+
+
 class MarketplaceVehicleRepository:
     """Repository that searches vehicle listings on Facebook Marketplace."""
 
@@ -65,6 +82,8 @@ class MarketplaceVehicleRepository:
                 if listing.id in seen_ids:
                     continue
                 seen_ids.add(listing.id)
+                if not _price_in_range(listing.price_amount, filters):
+                    continue
                 accumulated.append(listing)
                 yield listing
 
