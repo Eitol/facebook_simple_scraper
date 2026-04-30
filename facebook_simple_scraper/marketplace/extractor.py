@@ -26,6 +26,52 @@ from facebook_simple_scraper.marketplace.entities import (
 _LISTING_TYPENAMES = {"MarketplaceListing", "GroupCommerceProductItem"}
 
 
+def _parse_price_string(text: Optional[str]) -> Optional[float]:
+    """Best-effort numeric extraction from a formatted price string.
+
+    Handles inputs like "$20.999.990", "$1,234.56", "CLP 30.500.000",
+    "US$1,234.56", "$5.400.000 $6.500.000" (returns the first number).
+    Returns None if no usable digit sequence is found.
+    """
+    if not isinstance(text, str) or not text:
+        return None
+    # Grab the first number-like token (digits with possible . or , separators)
+    m = re.search(r"\d[\d.,]*", text)
+    if not m:
+        return None
+    raw = m.group(0)
+    # Strip thousands separators. Heuristic: if both '.' and ',' present, the
+    # last one is the decimal separator. If only one present and it appears
+    # exactly once with 1-2 trailing digits, treat as decimal; otherwise
+    # treat as thousands separator.
+    has_dot = "." in raw
+    has_comma = "," in raw
+    if has_dot and has_comma:
+        if raw.rfind(",") > raw.rfind("."):
+            cleaned = raw.replace(".", "").replace(",", ".")
+        else:
+            cleaned = raw.replace(",", "")
+    elif has_dot:
+        # e.g. "20.999.990" (CLP/EU thousands) vs "1234.56" (decimal)
+        parts = raw.split(".")
+        if len(parts) == 2 and 1 <= len(parts[1]) <= 2:
+            cleaned = raw  # decimal
+        else:
+            cleaned = raw.replace(".", "")
+    elif has_comma:
+        parts = raw.split(",")
+        if len(parts) == 2 and 1 <= len(parts[1]) <= 2:
+            cleaned = raw.replace(",", ".")
+        else:
+            cleaned = raw.replace(",", "")
+    else:
+        cleaned = raw
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
 class MarketplaceListingsParser(abc.ABC):
     @abc.abstractmethod
     def extract(self, html_content: str) -> MarketplaceVehicleList:
@@ -99,6 +145,9 @@ class MarketplaceListingsExtractor(MarketplaceListingsParser):
             currency = price_node.get("currency")
         elif isinstance(price_node, str):
             price_str = price_node
+
+        if price_amount is None:
+            price_amount = _parse_price_string(price_str)
 
         # Location
         location: Optional[str] = None
@@ -259,6 +308,9 @@ class MarketplaceDetailExtractor:
                 except (TypeError, ValueError):
                     pass
             currency = price_node.get("currency")
+
+        if price_amount is None:
+            price_amount = _parse_price_string(price_str)
 
         # Location — prefer location_text (human-readable) over lat/lng
         location: Optional[str] = None
