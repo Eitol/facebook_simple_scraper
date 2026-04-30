@@ -1,3 +1,4 @@
+import os
 import time
 from dataclasses import dataclass
 from random import randint
@@ -34,11 +35,15 @@ def _price_in_range(
 ) -> bool:
     """Return True if *price_amount* satisfies the min/max filters.
 
-    Listings without a parseable price are considered valid (returned).
-    Either bound may be ``None`` to indicate an open-ended range.
+    When either ``min_price`` or ``max_price`` is set, listings whose price
+    could not be determined are dropped (treated as out-of-range). When no
+    price bounds are set, every listing passes through.
     """
-    if price_amount is None:
+    has_bounds = filters.min_price is not None or filters.max_price is not None
+    if not has_bounds:
         return True
+    if price_amount is None:
+        return False
     if filters.min_price is not None and price_amount < filters.min_price:
         return False
     if filters.max_price is not None and price_amount > filters.max_price:
@@ -71,6 +76,7 @@ class MarketplaceVehicleRepository:
         seen_ids: set = set()
         accumulated: List = []
         self._cursor = None
+        debug = os.environ.get("FB_MARKETPLACE_DEBUG") == "1"
 
         while True:
             url = self._build_url(filters, cursor=self._cursor)
@@ -83,7 +89,19 @@ class MarketplaceVehicleRepository:
                     continue
                 seen_ids.add(listing.id)
                 if not _price_in_range(listing.price_amount, filters):
+                    if debug:
+                        print(
+                            f"[fb-marketplace] DROP price={listing.price_amount!r} "
+                            f"str={listing.price!r} id={listing.id} "
+                            f"title={listing.title[:60]!r}"
+                        )
                     continue
+                if debug:
+                    print(
+                        f"[fb-marketplace] KEEP price={listing.price_amount!r} "
+                        f"str={listing.price!r} id={listing.id} "
+                        f"title={listing.title[:60]!r}"
+                    )
                 accumulated.append(listing)
                 yield listing
 

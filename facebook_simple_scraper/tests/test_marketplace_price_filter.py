@@ -32,10 +32,16 @@ class TestPriceInRange(unittest.TestCase):
         self.assertTrue(_price_in_range(10_000_000, f))
         self.assertFalse(_price_in_range(10_000_001, f))
 
-    def test_missing_price_is_kept(self):
-        """Listings without a parseable price should pass the filter."""
+    def test_missing_price_dropped_when_bounds_set(self):
+        """Listings without a parseable price are dropped when bounds are set."""
         f = MarketplaceVehicleFilters(min_price=30_500_000, max_price=99_000_000)
-        self.assertTrue(_price_in_range(None, f))
+        self.assertFalse(_price_in_range(None, f))
+        f2 = MarketplaceVehicleFilters(min_price=30_500_000)
+        self.assertFalse(_price_in_range(None, f2))
+        f3 = MarketplaceVehicleFilters(max_price=99_000_000)
+        self.assertFalse(_price_in_range(None, f3))
+        # but with no bounds set, still kept
+        self.assertTrue(_price_in_range(None, MarketplaceVehicleFilters()))
 
 
 class TestParsePriceString(unittest.TestCase):
