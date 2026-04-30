@@ -10,6 +10,7 @@ look for objects that look like a Marketplace listing
 """
 import abc
 import json
+import os
 import re
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional
@@ -142,6 +143,19 @@ class MarketplaceListingsExtractor(MarketplaceListingsParser):
                     price_amount = float(amount)
                 except (TypeError, ValueError):
                     price_amount = None
+            # Fallback: amount_with_offset_in_currency is "amount * 10^currency_offset"
+            # (e.g. USD: "30000" with offset 2 => $300.00; CLP: "30500000" with offset 0).
+            if price_amount is None:
+                awoic = price_node.get("amount_with_offset_in_currency")
+                offset = price_node.get("currency_offset")
+                if awoic is not None:
+                    try:
+                        val = float(awoic)
+                        if offset is not None:
+                            val = val / (10 ** int(offset))
+                        price_amount = val
+                    except (TypeError, ValueError):
+                        pass
             currency = price_node.get("currency")
         elif isinstance(price_node, str):
             price_str = price_node
@@ -247,7 +261,7 @@ class MarketplaceListingsExtractor(MarketplaceListingsParser):
         return _iter_json_objects_from_html(html_content)
 
 
-_RAW_DEBUG = False
+_RAW_DEBUG = os.environ.get("FB_MARKETPLACE_DEBUG_RAW") == "1"
 
 
 class MarketplaceDetailExtractor:

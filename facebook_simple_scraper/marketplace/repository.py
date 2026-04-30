@@ -77,12 +77,20 @@ class MarketplaceVehicleRepository:
         accumulated: List = []
         self._cursor = None
         debug = os.environ.get("FB_MARKETPLACE_DEBUG") == "1"
+        debug_raw = os.environ.get("FB_MARKETPLACE_DEBUG_RAW") == "1"
 
         while True:
             url = self._build_url(filters, cursor=self._cursor)
+            if debug:
+                print(f"[fb-marketplace] GET {url}")
             response = self._requester.request("GET", url)
             page = self._parser.extract(response.text)
             self._cursor = page.cursor
+            if debug:
+                print(
+                    f"[fb-marketplace] extracted {len(page.listings)} listings "
+                    f"(filter min={filters.min_price} max={filters.max_price})"
+                )
 
             for listing in page.listings:
                 if listing.id in seen_ids:
@@ -102,6 +110,9 @@ class MarketplaceVehicleRepository:
                         f"str={listing.price!r} id={listing.id} "
                         f"title={listing.title[:60]!r}"
                     )
+                if debug_raw and listing.raw is not None:
+                    import json as _json
+                    print("[fb-marketplace] RAW:", _json.dumps(listing.raw, default=str)[:2000])
                 accumulated.append(listing)
                 yield listing
 
