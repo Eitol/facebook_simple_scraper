@@ -41,7 +41,11 @@ class Requester(abc.ABC):
 
 class FacebookSessionBasedRequester(Requester):
 
-    def __init__(self, session: Optional[requests.Session] = None, base_headers: Optional[dict] = None):
+    DEFAULT_TIMEOUT = 20.0
+
+    def __init__(self, session: Optional[requests.Session] = None,
+                 base_headers: Optional[dict] = None,
+                 timeout: float = DEFAULT_TIMEOUT):
         if session is None:
             self.session = requests.Session()
         else:
@@ -50,6 +54,7 @@ class FacebookSessionBasedRequester(Requester):
             self.headers = base_headers
         else:
             self.headers = DEFAULT_HEADER
+        self.timeout = timeout
         self.session_variables: dict = {}
         self.latest_request: Optional[requests.Request] = None
 
@@ -74,7 +79,8 @@ class FacebookSessionBasedRequester(Requester):
         raise ValueError("Session has no 'datr' cookie")
 
     def request(self, method: str, url: str, data: Optional[dict] = None,
-                headers: Optional[dict] = None) -> requests.Response:
+                headers: Optional[dict] = None,
+                timeout: Optional[float] = None) -> requests.Response:
         if headers is not None:
             for k, v in self.headers.items():
                 if k not in headers:
@@ -82,11 +88,8 @@ class FacebookSessionBasedRequester(Requester):
         else:
             headers = self.headers
         self.latest_request = requests.Request(method, url, headers=headers, data=data)
-        # cookies_to_keep = ['datr', 'sb', 'c_user']
-        # cookies = {k: v for k, v in self.session.cookies.items() if k in cookies_to_keep}
-        # self.session.cookies.clear()
-        # self.session.cookies.update(cookies)
-        return self.session.request(method, url, data=data, headers=headers)
+        return self.session.request(method, url, data=data, headers=headers,
+                                    timeout=timeout if timeout is not None else self.timeout)
 
     def get_session(self) -> requests.Session:
         return self.session

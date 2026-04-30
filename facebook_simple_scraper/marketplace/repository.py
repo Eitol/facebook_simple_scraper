@@ -69,8 +69,12 @@ class MarketplaceVehicleRepository:
         """Yield vehicle listings matching ``filters``.
 
         Pagination is handled automatically using the ``end_cursor`` returned
-        by Facebook. Iteration stops when no further cursor is found or any
-        of the supplied ``stop_conditions`` returns True.
+        by Facebook. Iteration stops when:
+          - no further cursor is returned by FB,
+          - a page returns zero new listings (FB's HTTP search occasionally
+            serves the same first 24 listings under different cursors,
+            which would otherwise loop forever),
+          - or any of the supplied ``stop_conditions`` returns True.
         """
         stop_conditions = stop_conditions or []
         seen_ids: set = set()
@@ -92,10 +96,12 @@ class MarketplaceVehicleRepository:
                     f"(filter min={filters.min_price} max={filters.max_price})"
                 )
 
+            new_in_page = 0
             for listing in page.listings:
                 if listing.id in seen_ids:
                     continue
                 seen_ids.add(listing.id)
+                new_in_page += 1
                 if not _price_in_range(listing.price_amount, filters):
                     if debug:
                         print(
@@ -117,6 +123,14 @@ class MarketplaceVehicleRepository:
                 yield listing
 
             if not self._cursor:
+                return
+            # FB can return a non-null cursor even when every listing on the
+            # page is a duplicate of the previous page. Without this guard
+            # the loop spins forever; with it, we exit when no progress is
+            # being made.
+            if new_in_page == 0:
+                if debug:
+                    print("[fb-marketplace] page yielded 0 new listings — stopping")
                 return
             for cond in stop_conditions:
                 if cond.should_stop(accumulated):
@@ -148,7 +162,35 @@ class MarketplaceVehicleRepository:
     def _build_url(
         filters: MarketplaceVehicleFilters, cursor: Optional[str] = None
     ) -> str:
-        params: List[tuple] = [("category_id", filters.category_id)]
+        """Build the search URL Facebook will actually serve listings for.
+
+        Facebook's HTTP responses (logged-in cookies, no JS) are tricky:
+
+        - ``/marketplace/category/search/?category_id=...&latitude=...&longitude=...``
+          responds with ``MarketplaceSearchFeedNoResults`` for arbitrary
+          coordinates, even with valid auth cookies. ``latitude`` /
+          ``longitude`` only take effect from a real browser session that
+          has set the location through the in-app dialog (which lives in
+          JS state, not in cookies).
+
+        - ``/marketplace/{city_slug}/vehicles/?...`` (vanity-URL form) does
+          return ``GroupCommerceProductItem`` nodes via plain HTTP. So
+          when ``filters.location`` is provided, we route through
+          ``/marketplace/{slug}/vehicles/?...`` (instead of the previous
+          ``/marketplace/{slug}/search/?...``, which silently returned an
+          empty feed for the same locations).
+
+        - ``filters.query`` is a free-text search and pollutes vehicle
+          results with anything whose title matches the term (terrains,
+          rentals, etc), so we no longer append it for vehicle searches.
+        """
+        params: List[tuple] = []
+
+        slug = (filters.location or "").strip("/ ")
+        # When NO city slug is given we fall back to the generic search
+        # endpoint, which needs ``category_id`` to scope to vehicles.
+        if not slug:
+            params.append(("category_id", filters.category_id))
 
         if filters.query:
             params.append(("query", filters.query))
@@ -167,7 +209,10 @@ class MarketplaceVehicleRepository:
             params.append(("availability", "out of stock"))
         if filters.days_since_listed and filters.days_since_listed != DaysSinceListed.ANY:
             params.append(("daysSinceListed", str(int(filters.days_since_listed))))
-        if filters.latitude is not None and filters.longitude is not None:
+        # When a slug is provided FB derives location from the vanity URL,
+        # so we omit lat/lng/radius (they have no effect via HTTP anyway —
+        # see docstring above).
+        if not slug and filters.latitude is not None and filters.longitude is not None:
             params.append(("latitude", str(filters.latitude)))
             params.append(("longitude", str(filters.longitude)))
             params.append(("radius", str(filters.radius_km)))
@@ -176,12 +221,8 @@ class MarketplaceVehicleRepository:
         params.append(("exact", "false"))
 
         qs = urlencode(params)
-        slug = (filters.location or "").strip("/ ")
         if slug:
-            # Keep the vanity-URL form when a slug is provided, otherwise
-            # use the generic search endpoint scoped via lat/lng (or the
-            # IP-derived default location for unauthenticated requests).
-            return f"https://www.facebook.com/marketplace/{slug}/search/?{qs}"
+            return f"https://www.facebook.com/marketplace/{slug}/vehicles/?{qs}"
         return f"https://www.facebook.com/marketplace/category/search/?{qs}"
 
     def _sleep(self) -> None:

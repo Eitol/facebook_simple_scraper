@@ -28,10 +28,30 @@ class TestMarketplaceURLBuilder(unittest.TestCase):
         self.assertEqual(qs.get("exact"), ["false"])
 
     def test_slug_url(self):
+        # Slug-based URL routes through /{city}/vehicles/ rather than
+        # /{city}/search/: the latter responds with an empty feed for
+        # most Chilean cities even when the former returns listings.
         url = MarketplaceVehicleRepository._build_url(
             MarketplaceVehicleFilters(location="miami")
         )
-        self.assertIn("/marketplace/miami/search/", url)
+        self.assertIn("/marketplace/miami/vehicles/", url)
+
+    def test_slug_url_omits_lat_lng_and_category_id(self):
+        # FB derives location from the vanity URL; lat/lng don't take
+        # effect via plain HTTP, and the category is implicit in the
+        # /vehicles/ slug, so we drop both.
+        url = MarketplaceVehicleRepository._build_url(
+            MarketplaceVehicleFilters(
+                location="ancud",
+                latitude=-41.8682, longitude=-73.8287, radius_km=40,
+            )
+        )
+        parsed = urlparse(url)
+        qs = parse_qs(parsed.query)
+        self.assertNotIn("latitude", qs)
+        self.assertNotIn("longitude", qs)
+        self.assertNotIn("radius", qs)
+        self.assertNotIn("category_id", qs)
 
     def test_lat_lng(self):
         qs = _qs(MarketplaceVehicleFilters(
